@@ -15,14 +15,20 @@ namespace CommonData
         public DbSet<DishProduct> DishProducts { get; set; }
         public DbSet<DishTag> DishTags { get; set; }
 
+        //protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        //{
+        //    // Подключение к LocalDB с указанием пути к .mdf
+        //    optionsBuilder.UseSqlServer
+        //    (
+        //        @"Server=(localdb)\mssqllocaldb;
+        //      AttachDbFilename=C:\Users\Никита\source\repos\CookBook\CommonData\LocalDB\CookBookDB.mdf;
+        //      Trusted_Connection=True;");
+        //}
+
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            // Подключение к LocalDB с указанием пути к .mdf
-            optionsBuilder.UseSqlServer
-            (
-                @"Server=(localdb)\mssqllocaldb;
-              AttachDbFilename=C:\Users\Никита\source\repos\CookBook\CommonData\LocalDB\CookBookDB.mdf;
-              Trusted_Connection=True;");
+            optionsBuilder.UseSqlServer(@"Server=(localdb)\mssqllocaldb;AttachDbFilename=C:\Users\Никита\source\repos\CookBook\CommonData\LocalDB\CookBookDB.mdf; Database=CookBookDB;Trusted_Connection=True;");
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
