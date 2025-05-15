@@ -18,5 +18,6 @@ namespace CommonData
 
         // Связь с блюдами (многие-ко-многим через DishProduct)
         public List<DishProduct> DishProducts { get; set; } = new();
+
     }
 }

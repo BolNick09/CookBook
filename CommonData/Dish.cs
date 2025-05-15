@@ -33,7 +33,7 @@ namespace CommonData
 
 
         public List<DishTag> DishTags { get; set; } = new();//ДОБАВИЛ СВОЙСТВО!!!!!!!!!!!!!!!!!!!!!!!!
-        public List<DishProduct>? DishProducts { get; internal set; }
+        public List<DishProduct>? DishProducts { get;  set; }
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
