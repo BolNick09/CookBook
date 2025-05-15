@@ -1,22 +1,47 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace CommonData
 {
-    public class Dish
+    public class Dish : INotifyPropertyChanged
     {
+        private bool _isFavorite;
+
+        public bool IsFavorite
+        {
+            get => _isFavorite;
+            set
+            {
+                if (_isFavorite != value)
+                {
+                    _isFavorite = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public int Id { get; set; }
         public string Name { get; set; } = null!;
-        public string? Comment { get; set; }    // необязательный комментарий
-        public bool IsFavorite { get; set; }   // избранное (да/нет)
-        public string Recipe { get; set; } = null!; // рецепт
-        public byte[]? Image { get; set; }     // картинка (необязательно)
+        public string Recipe { get; set; } = null!;
+        public string? ImagePath { get; set; }
 
-        // Связи
-        public List<DishProduct> DishProducts { get; set; } = new(); // продукты в блюде
-        public List<DishTag> DishTags { get; set; } = new();         // теги блюда
+
+
+        public List<DishTag> DishTags { get; set; } = new();//ДОБАВИЛ СВОЙСТВО!!!!!!!!!!!!!!!!!!!!!!!!
+        public List<DishProduct>? DishProducts { get; internal set; }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+
     }
 }
