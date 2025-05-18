@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using ServerCommonData;
 
 namespace Server
 {
@@ -45,7 +46,7 @@ namespace Server
                     var requestJson = Encoding.UTF8.GetString(buffer, 0, bytesRead);
 
                     // Десериализация запроса (ожидается объект типа Request)
-                    var request = JsonConvert.DeserializeObject<Request>(requestJson);
+                    var request = JsonConvert.DeserializeObject<ServerCommonData.Request>(requestJson);
 
                     // Обработка запроса
                     var response = await _dbService.ProcessRequestAsync(request);
