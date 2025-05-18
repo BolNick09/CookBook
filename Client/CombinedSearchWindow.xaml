@@ -1,0 +1,115 @@
+﻿<Window x:Class="CookBookClient.CombinedSearchWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:CookBookClient"
+        Title="Поиск" 
+        Height="600" 
+        Width="800"
+        WindowStartupLocation="CenterOwner">
+    <Grid Margin="10">
+        <TabControl>
+            <!-- Вкладка для поиска блюд -->
+            <TabItem Header="Блюда">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Поиск блюд -->
+                    <StackPanel>
+                        <Label>Поиск по названию блюда...</Label>
+                    <TextBox Grid.Row="0" 
+                             Name="txtDishSearch" 
+                             Margin="0,0,0,10"
+                             TextChanged="txtDishesSearch_TextChanged"
+                             Padding="5"
+                             />
+                    </StackPanel>
+
+                    <!-- Фильтры для блюд -->
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="Теги:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <ItemsControl ItemsSource="{Binding DishTags}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <CheckBox Content="{Binding Tag.Name}" 
+                      Margin="5,0"
+                      IsChecked="{Binding IsSelected}"
+                      VerticalAlignment="Center"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <!-- Список блюд -->
+                    <DataGrid Grid.Row="2" 
+                              Name="dishesGrid"
+                              AutoGenerateColumns="False"
+                              ItemsSource="{Binding FilteredDishes}"
+                              IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="*"/>
+                            <DataGridTextColumn Header="Теги" Binding="{Binding TagsList}" Width="200"/>
+                            <DataGridCheckBoxColumn Header="Избранное" 
+                        Binding="{Binding IsFavorite, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        Width="100"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- Вкладка для поиска продуктов -->
+            <TabItem Header="Продукты">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Поиск продуктов -->
+                    <StackPanel>
+                    <Label>Поиск по названию продукта...</Label>
+                    
+                        <TextBox Grid.Row="0" 
+                             Name="txtProductSearch" 
+                             Margin="0,0,0,10"
+                             TextChanged="txtProductSearch_TextChanged"
+                             Padding="5"
+                           />
+                    </StackPanel>
+                    <!-- Фильтры для продуктов -->
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
+                     
+                        <Button Content="Сброс" 
+                                Margin="10,0" 
+                                Padding="15,5"
+                                Click="ProductResetFilters_Click"/>
+                    </StackPanel>
+
+                    <!-- Список продуктов -->
+                    <DataGrid Grid.Row="2" 
+                              Name="productsGrid"
+                              AutoGenerateColumns="False"
+                              ItemsSource="{Binding FilteredProducts}"
+                              IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="*"/>
+                            <DataGridTextColumn Header="Калории" Binding="{Binding Calories, StringFormat=N2}" Width="100"/>
+                            <DataGridTextColumn Header="Белки" Binding="{Binding Proteins, StringFormat=N2}" Width="100"/>
+                            <DataGridTextColumn Header="Жиры" Binding="{Binding Fats, StringFormat=N2}" Width="100"/>
+                            <DataGridTextColumn Header="Углеводы" Binding="{Binding Carbohydrates, StringFormat=N2}" Width="100"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>
