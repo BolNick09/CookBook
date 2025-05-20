@@ -5,8 +5,56 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Client_CookBookApp"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        Title="Кулинарная книга" Height="450" Width="800">
+    <Grid Margin="0,0,0,33">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-    </Grid>
-</Window>
+            <!-- Заголовок -->
+            <Label Grid.Row="0" 
+               Content="Кулинарная книга" 
+               FontSize="24" 
+               HorizontalAlignment="Center" 
+               Margin="0,20"/>
+
+            <!-- Кнопки навигации -->
+            <StackPanel Grid.Row="1" 
+                    HorizontalAlignment="Center" 
+                    VerticalAlignment="Center"
+                    Width="300">
+                <Button Content="Поиск рецептов" 
+                    Margin="0,10" 
+                    Padding="15,5"
+                    Click="OpenSearchRecipes_Click"/>
+
+                <Button Content="Поиск и фильтрация продуктов" 
+Margin="0,10" 
+Padding="15,5"
+Click="OpenProductsSearch_Click"/>
+                <Button Content="Управление рецептами" 
+                    Margin="0,10" 
+                    Padding="15,5"
+                    Click="OpenRecipesManagement_Click"/>
+
+                <Button Content="Управление продуктами" 
+                    Margin="0,10" 
+                    Padding="15,5"
+                    Click="OpenProductsManagement_Click"/>
+
+                <Button Content="Калькулятор калорий" 
+                    Margin="0,10" 
+                    Padding="15,5"
+                    Click="OpenCalorieCalculator_Click"/>
+                <Button 
+                    x:Name="favorite" 
+                    Content="Избранное" 
+                    Margin="0,10" 
+                    Padding="15,5" Click="favorite_Click"
+                    />
+
+            </StackPanel>
+        </Grid>
+    </Window>
+
