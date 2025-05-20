@@ -8,4 +8,9 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\CommonData\CommonData.csproj" />
+    <ProjectReference Include="..\ServerCommonData\ServerCommonData.csproj" />
+  </ItemGroup>
+
 </Project>
