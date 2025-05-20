@@ -18,4 +18,9 @@ public class CalculatedProduct
     public double Proteins { get => (double)(Product.Proteins * (decimal)Grams / 100); set; }
     public double Fats { get => (double)(Product.Fats * (decimal)Grams / 100); set; }
     public double Carbohydrates { get => (double)(Product.Carbohydrates * (decimal)Grams / 100); set; }
+    public CalculatedProduct(Product product, double grams)
+    {
+        Product = product;
+        Grams = grams;
+    }
 }

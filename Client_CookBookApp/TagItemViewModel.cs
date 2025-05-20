@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -10,24 +11,16 @@ namespace Client_CookBookApp;
 
 public class TagItemViewModel : INotifyPropertyChanged
 {
+    private bool _isSelected;
     public Tag Tag { get; set; }
 
     public bool IsSelected
     {
-        get;
-        set
-        {
-            if (field != value)
-            {
-                field = value;
-                OnPropertyChanged(nameof(IsSelected));
-                CombinedSearchWindow.Instance?.ApplyDishesFilters();
-            }
-        }
+        get => _isSelected;
+        set { _isSelected = value; OnPropertyChanged(); }
     }
 
     public event PropertyChangedEventHandler PropertyChanged;
-
-    protected void OnPropertyChanged(string propertyName) =>
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    protected void OnPropertyChanged([CallerMemberName] string name = null)
+        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }

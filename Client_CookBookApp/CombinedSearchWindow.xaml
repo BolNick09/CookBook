@@ -46,6 +46,7 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
+                        
                     </StackPanel>
 
                     <!-- Список блюд -->
@@ -92,6 +93,11 @@
                              Margin="10,0" 
                              Padding="15,5"
                              Click="ProductResetFilters_Click"/>
+                        
+                        <Button Content="Обновить"
+                                Click="RefreshButton_Click"
+                                Margin="10,0" 
+                                Padding="15,5"/>
                     </StackPanel>
 
                     <!-- Список продуктов -->

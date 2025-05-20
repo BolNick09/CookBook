@@ -3,103 +3,84 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
-namespace Client_CookBookApp;
-
-/// <summary>
-/// Interaction logic for CalorieCalculatorWindow.xaml
-/// </summary>
-public partial class CalorieCalculatorWindow : Window
+namespace Client_CookBookApp
 {
-    private List<Product> _availableProducts = new List<Product>();
-    private BindingList<CalculatedProduct> _selectedProducts = new BindingList<CalculatedProduct>();
-    public CalorieCalculatorWindow()
+    public partial class CalorieCalculatorWindow : Window
     {
-        InitializeComponent();
-        InitializeSampleProducts();
-        SetupControls();
-    }
+        private readonly BindingList<CalculatedProduct> _selectedProducts = new();
 
-    private void InitializeSampleProducts()
-    {
-        foreach (var product in AppData.Products)
+        public CalorieCalculatorWindow()
         {
-            _availableProducts.Add(product);
+            InitializeComponent();
+            Loaded += async (s, e) => await InitializeProductsAsync();
+            SetupControls();
         }
 
-    }
-
-    private void SetupControls()
-    {
-        ProductsComboBox.ItemsSource = _availableProducts;
-        ProductsComboBox.DisplayMemberPath = "Name";
-        SelectedProductsGrid.ItemsSource = _selectedProducts;
-        _selectedProducts.ListChanged += (s, e) => UpdateTotals();
-    }
-
-    private void UpdateTotals()
-    {
-        var totals = new
+        private async Task InitializeProductsAsync()
         {
-            Calories = _selectedProducts.Sum(p => p.Calories),
-            Proteins = _selectedProducts.Sum(p => p.Proteins),
-            Fats = _selectedProducts.Sum(p => p.Fats),
-            Carbs = _selectedProducts.Sum(p => p.Carbohydrates)
-        };
+            try
+            {
+                if (!AppData.Products.Any())
+                    await AppData.InitializeAsync();
 
-        TotalCaloriesLabel.Content = totals.Calories.ToString("N1");
-        TotalProteinsLabel.Content = totals.Proteins.ToString("N1");
-        TotalFatsLabel.Content = totals.Fats.ToString("N1");
-        TotalCarbsLabel.Content = totals.Carbs.ToString("N1");
-    }
-
-    private void AddButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (ProductsComboBox.SelectedItem == null)
-        {
-            MessageBox.Show("Выберите продукт из списка", "Ошибка",
-                MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
+                ProductsComboBox.ItemsSource = AppData.Products;
+                ProductsComboBox.DisplayMemberPath = "Name";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки продуктов: {ex.Message}");
+            }
         }
 
-        if (!double.TryParse(WeightTextBox.Text, out double weight) || weight <= 0)
+        private void SetupControls()
         {
-            MessageBox.Show("Введите корректный вес продукта (положительное число)", "Ошибка",
-                MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
+            SelectedProductsGrid.ItemsSource = _selectedProducts;
+            _selectedProducts.ListChanged += (s, e) => UpdateTotals();
         }
 
-        var selectedProduct = (Product)ProductsComboBox.SelectedItem;
-        _selectedProducts.Add(new CalculatedProduct
+        private void UpdateTotals()
         {
-            Product = selectedProduct,
-            Name = selectedProduct.Name,
-            Grams = weight,
-            Calories = (double)(selectedProduct.Calories * (decimal)weight / 100),
-            Proteins = (double)(selectedProduct.Proteins * (decimal)weight / 100),
-            Fats = (double)(selectedProduct.Fats * (decimal)weight / 100),
-            Carbohydrates = (double)(selectedProduct.Carbohydrates * (decimal)weight / 100)
-        });
+            var totals = new
+            {
+                Calories = _selectedProducts.Sum(p => p.Calories),
+                Proteins = _selectedProducts.Sum(p => p.Proteins),
+                Fats = _selectedProducts.Sum(p => p.Fats),
+                Carbs = _selectedProducts.Sum(p => p.Carbohydrates)
+            };
 
-        WeightTextBox.Clear();
-    }
-    private void ClearButton_Click(object sender, RoutedEventArgs e)
-    {
-        _selectedProducts.Clear();
+            TotalCaloriesLabel.Content = totals.Calories.ToString("N1");
+            TotalProteinsLabel.Content = totals.Proteins.ToString("N1");
+            TotalFatsLabel.Content = totals.Fats.ToString("N1");
+            TotalCarbsLabel.Content = totals.Carbs.ToString("N1");
+        }
+
+        private void AddButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (ProductsComboBox.SelectedItem is not Product product)
+            {
+                MessageBox.Show("Выберите продукт из списка", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (!double.TryParse(WeightTextBox.Text, out double weight) || weight <= 0)
+            {
+                MessageBox.Show("Введите корректный вес (положительное число)", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            _selectedProducts.Add(new CalculatedProduct(product, weight));
+            WeightTextBox.Clear();
+        }
+
+        private void ClearButton_Click(object sender, RoutedEventArgs e)
+        {
+            _selectedProducts.Clear();
+        }
     }
 
-    private void CalculateButton_Click(object sender, RoutedEventArgs e)
-    {
-        UpdateTotals();
-    }
+
 }
