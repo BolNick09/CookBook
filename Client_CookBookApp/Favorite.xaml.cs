@@ -34,6 +34,19 @@ namespace Client_CookBookApp
             // Отображаем текущие избранные блюда
             RefreshFavorites();
         }
+        private async void SaveToDatabase(Dish dish)
+        {
+            try
+            {
+                var result = await AppData.Client.SendRequest<bool>("Update", "Dish", dish);
+                if (!result)
+                    MessageBox.Show("Не удалось сохранить изменения");
+            }
+            catch (System.Exception ex)
+            {
+                MessageBox.Show($"Ошибка сохранения: {ex.Message}");
+            }
+        }
 
         private void RefreshFavorites()
         {
@@ -96,18 +109,7 @@ namespace Client_CookBookApp
             }
         }
 
-        private void SaveToDatabase(Dish dish)
-        {
-            using var db = new CookBookDbContext();
-            var existingDish = db.Dishes.Find(dish.Id);
-
-            if (existingDish != null)
-            {
-                existingDish.IsFavorite = dish.IsFavorite;
-                db.Dishes.Update(existingDish);
-                db.SaveChanges();
-            }
-        }
+     
 
         private void ClearDetails()
         {

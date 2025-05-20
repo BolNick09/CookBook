@@ -19,6 +19,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        Loaded += async (s, e) => await AppData.InitializeAsync();
     }
 
     private void OpenSearchRecipes_Click(object sender, RoutedEventArgs e)
