@@ -29,28 +29,38 @@ namespace Client_CookBookApp
         public RecipesManagementWindow()
         {
             InitializeComponent();
+            InitializeDataBindings();
+            LoadData();
+        }
 
-            // Инициализация элементов управления
+        private async  void LoadData()
+        {
+            try
+            {
+                await AppData.InitializeAsync();
+                RecipesGrid.Items.Refresh();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки данных: {ex.Message}");
+            }
+        }
+
+        private void InitializeDataBindings()
+        {
             RecipesGrid.ItemsSource = AppData.Dishes;
             ProductsComboBox.ItemsSource = AppData.Products;
             ProductsComboBox.DisplayMemberPath = "Name";
             IngredientsListBox.ItemsSource = _currentDishProducts;
             IngredientsListBox.DisplayMemberPath = "Product.Name";
-
-            // Сброс формы
-            ResetForm();
         }
 
         #region INotifyPropertyChanged Implementation
-
         public event PropertyChangedEventHandler PropertyChanged;
-
-        protected void OnPropertyChanged(string propertyName)
-        {
+        protected void OnPropertyChanged(string propertyName) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
         #endregion
+
 
         #region UI Methods
 
@@ -61,6 +71,7 @@ namespace Client_CookBookApp
             RecipeNameTextBox.Text = "";
             DescriptionTextBox.Text = "";
         }
+
 
         private void AddIngredientButton_Click(object sender, RoutedEventArgs e)
         {
@@ -91,71 +102,82 @@ namespace Client_CookBookApp
                 });
             }
         }
-
-        private void SaveButton_Click(object sender, RoutedEventArgs e)
+        private bool ValidateForm()
         {
             if (string.IsNullOrWhiteSpace(RecipeNameTextBox.Text))
             {
                 MessageBox.Show("Введите название блюда", "Ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
+                return false;
             }
 
             if (_currentDishProducts.Count == 0)
             {
-                MessageBox.Show("Добавьте хотя бы один ингредиент", "Ошибка",
+                MessageBox.Show("Добавьте ингредиенты", "Ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
+                return false;
             }
-
-            if (_currentDish == null)
-                _currentDish = new Dish();
-
-            _currentDish.Name = RecipeNameTextBox.Text;
-            _currentDish.Recipe = DescriptionTextBox.Text;
-
-            using var db = new CookBookDbContext();
-
-            if (_currentDish.Id == 0)
-            {
-                db.Dishes.Add(_currentDish);
-                db.SaveChanges(); // Получаем Id
-                AppData.Dishes.Add(_currentDish);
-            }
-            else
-            {
-                db.Dishes.Update(_currentDish);
-                db.SaveChanges();
-            }
-
-            if (_currentDish.Id != 0)
-            {
-                var existingProducts = db.DishProducts.Where(dp => dp.DishId == _currentDish.Id).ToList();
-                db.DishProducts.RemoveRange(existingProducts);
-                db.SaveChanges();
-            }
-
-            foreach (var dp in _currentDishProducts)
-            {
-                db.DishProducts.Add(new DishProduct
-                {
-                    DishId = _currentDish.Id,
-                    ProductId = dp.ProductId,
-                    Weight = dp.Weight
-                });
-            }
-
-            db.SaveChanges();
-
-            // Обновляем связи в объекте
-            _currentDish.DishProducts = _currentDishProducts.ToList();
-
-            // Оповещаем UI об изменениях
-            OnPropertyChanged(nameof(RecipesGrid)); // или обновите через Items.Refresh()
-
-            RecipesGrid.Items.Refresh();
-            ResetForm();
+            return true;
         }
+        private async void SaveButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!ValidateForm()) return;
+
+            try
+            {
+                // 1. Сохраняем основное блюдо
+                var dishAction = _currentDish?.Id == 0 ? "Add" : "Update";
+                var savedDish = await AppData.Client.SendRequest<Dish>(
+                    dishAction,
+                    "Dish",
+                    new Dish
+                    {
+                        Id = _currentDish?.Id ?? 0,
+                        Name = RecipeNameTextBox.Text,
+                        Recipe = DescriptionTextBox.Text
+                    });
+
+                // 2. Удаляем старые ингредиенты (если редактирование)
+                if (dishAction == "Update")
+                {
+                    var existingIngredients = await AppData.Client.SendRequest<List<DishProduct>>(
+                        "GetAll",
+                        "DishProduct",
+                        new { DishId = savedDish.Id });
+
+                    foreach (var ingredient in existingIngredients)
+                    {
+                        await AppData.Client.SendRequest<bool>(
+                            "Delete",
+                            "DishProduct",
+                            new { ingredient.DishId, ingredient.ProductId });
+                    }
+                }
+
+                // 3. Добавляем новые ингредиенты
+                foreach (var ingredient in _currentDishProducts)
+                {
+                    await AppData.Client.SendRequest<bool>(
+                        "Add",
+                        "DishProduct",
+                        new DishProduct
+                        {
+                            DishId = savedDish.Id,
+                            ProductId = ingredient.ProductId,
+                            Weight = ingredient.Weight
+                        });
+                }
+
+                // 4. Обновляем локальные данные
+                await AppData.InitializeAsync();
+                ResetForm();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка сохранения: {ex.Message}");
+            }
+        }
+
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)
         {
@@ -167,68 +189,72 @@ namespace Client_CookBookApp
             ResetForm();
         }
 
-        private void EditButton_Click(object sender, RoutedEventArgs e)
+        private async void EditButton_Click(object sender, RoutedEventArgs e)
         {
-            if (RecipesGrid.SelectedItem == null)
+            if (RecipesGrid.SelectedItem is Dish selectedDish)
             {
-                MessageBox.Show("Выберите блюдо для редактирования", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            var selectedDish = (Dish)RecipesGrid.SelectedItem;
-            _currentDish = selectedDish;
-            _currentDishProducts.Clear();
-
-            foreach (var dishProduct in selectedDish.DishProducts)
-            {
-                _currentDishProducts.Add(new DishProduct
+                try
                 {
-                    DishId = dishProduct.DishId,
-                    ProductId = dishProduct.ProductId,
-                    Product = dishProduct.Product,
-                    Weight = dishProduct.Weight
-                });
-            }
+                    // Загружаем ингредиенты с сервера
+                    var ingredients = await AppData.Client.SendRequest<List<DishProduct>>(
+                        "GetAll",
+                        "DishProduct",
+                        new { DishId = selectedDish.Id });
 
-            RecipeNameTextBox.Text = _currentDish.Name;
-            DescriptionTextBox.Text = _currentDish.Recipe;
+                    _currentDish = selectedDish;
+                    _currentDishProducts.Clear();
+
+                    foreach (var ingredient in ingredients)
+                    {
+                        _currentDishProducts.Add(new DishProduct
+                        {
+                            DishId = ingredient.DishId,
+                            ProductId = ingredient.ProductId,
+                            Product = AppData.Products.First(p => p.Id == ingredient.ProductId),
+                            Weight = ingredient.Weight
+                        });
+                    }
+
+                    RecipeNameTextBox.Text = _currentDish.Name;
+                    DescriptionTextBox.Text = _currentDish.Recipe;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка загрузки: {ex.Message}");
+                }
+            }
         }
 
-        private void DeleteButton_Click(object sender, RoutedEventArgs e)
+        private async void DeleteButton_Click(object sender, RoutedEventArgs e)
         {
-            if (RecipesGrid.SelectedItem == null)
+            if (RecipesGrid.SelectedItem is not Dish selectedDish) return;
+
+            try
             {
-                MessageBox.Show("Выберите блюдо для удаления", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
+                // 1. Удаляем ингредиенты
+                var ingredients = await AppData.Client.SendRequest<List<DishProduct>>(
+                    "GetAll",
+                    "DishProduct",
+                    new { DishId = selectedDish.Id });
 
-            var selectedDish = (Dish)RecipesGrid.SelectedItem;
-
-            var result = MessageBox.Show("Вы уверены, что хотите удалить это блюдо?",
-                "Подтверждение удаления",
-                MessageBoxButton.YesNo, MessageBoxImage.Question);
-
-            if (result == MessageBoxResult.Yes)
-            {
-                using var db = new CookBookDbContext();
-                var dishToRemove = db.Dishes
-                    .Include(d => d.DishProducts)
-                    .FirstOrDefault(d => d.Id == selectedDish.Id);
-
-                if (dishToRemove != null)
+                foreach (var ingredient in ingredients)
                 {
-                    db.Dishes.Remove(dishToRemove);
-                    db.SaveChanges();
+                    await AppData.Client.SendRequest<bool>(
+                        "Delete",
+                        "DishProduct",
+                        new { ingredient.DishId, ingredient.ProductId });
                 }
 
+                // 2. Удаляем блюдо
+                await AppData.Client.SendRequest<bool>("Delete", "Dish", selectedDish.Id);
+
+                // 3. Обновляем локальные данные
                 AppData.Dishes.Remove(selectedDish);
-
-                if (_currentDish != null && _currentDish.Id == selectedDish.Id)
-                {
-                    ResetForm();
-                }
+                ResetForm();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка удаления: {ex.Message}");
             }
         }
 
