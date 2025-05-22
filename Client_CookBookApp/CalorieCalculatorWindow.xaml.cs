@@ -80,6 +80,11 @@ namespace Client_CookBookApp
         {
             _selectedProducts.Clear();
         }
+
+        private void CalculateButton_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
     }
 
 
