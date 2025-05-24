@@ -22,13 +22,20 @@ namespace Client_CookBookApp;
 public partial class SearchRecipesWindow : Window
 {
     private ObservableCollection<SelectableProduct> _availableProducts = new ObservableCollection<SelectableProduct>();
-    private ObservableCollection<Dish> _allDishes = AppData.Dishes; // Используем данные из AppData
+    private ObservableCollection<Dish> _allDishes = new ObservableCollection<Dish>(); 
     private ObservableCollection<DishDisplay> _matchingRecipes = new ObservableCollection<DishDisplay>();
+
+    private readonly AppData appData;
 
     public SearchRecipesWindow()
     {
         InitializeComponent();
         InitializeSampleData();
+
+        if (this.Owner is MainWindow mainWindow)
+            appData = mainWindow.appData;
+
+        _allDishes = appData.Dishes;
 
         AvailableProductsGrid.ItemsSource = _availableProducts;
         MatchingRecipesGrid.ItemsSource = _matchingRecipes;
@@ -37,7 +44,7 @@ public partial class SearchRecipesWindow : Window
     private void InitializeSampleData()
     {
         // Заполняем доступные продукты из AppData
-        foreach (var product in AppData.Products)
+        foreach (var product in appData.Products)
         {
             _availableProducts.Add(new SelectableProduct { Product = product });
         }

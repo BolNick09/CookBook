@@ -1,4 +1,5 @@
 ﻿using CommonData;
+using ServerCommonData;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -22,11 +23,14 @@ namespace Client_CookBookApp;
 public partial class ProductsManagementWindow : Window
 {
     private Product _selectedProduct;
+    private readonly AppData appData;
 
-    public ProductsManagementWindow()
+    public ProductsManagementWindow(MainWindow owner)
     {
+
         InitializeComponent();
-        ProductsGrid.ItemsSource = AppData.Products;
+        appData = owner.appData;
+        ProductsGrid.ItemsSource = appData.Products;
         LoadProducts();
 
     }
@@ -102,10 +106,10 @@ public partial class ProductsManagementWindow : Window
 
         try
         {
-            var result = await AppData.Client.SendRequest<bool>("Delete", "Product", selectedProduct.Id);
-            if (result)
+            var result = await appData.Client.SendRequestAsync<Response>("Delete", "Product", selectedProduct.Id);
+            if (result.Success)
             {
-                AppData.Products.Remove(selectedProduct);
+                appData.Products.Remove(selectedProduct);
                 ClearForm();
             }
         }
@@ -117,15 +121,15 @@ public partial class ProductsManagementWindow : Window
 
     private async void LoadProducts()
     {
-        try
-        {
-            await AppData.InitializeAsync(); // Используем общую инициализацию
-            ProductsGrid.Items.Refresh();
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Ошибка загрузки: {ex.Message}");
-        }
+        //try
+        //{
+        //    await AppData.InitializeAsync(); // Используем общую инициализацию
+        //    ProductsGrid.Items.Refresh();
+        //}
+        //catch (Exception ex)
+        //{
+        //    MessageBox.Show($"Ошибка загрузки: {ex.Message}");
+        //}
     }
 
     private async void SaveProduct_Click(object sender, RoutedEventArgs e)
@@ -145,11 +149,11 @@ public partial class ProductsManagementWindow : Window
             };
 
             var action = _selectedProduct == null ? "Add" : "Update";
-            var result = await AppData.Client.SendRequest<bool>(action, "Product", product);
+            var result = await appData.Client.SendRequestAsync<Response>(action, "Product", product);
 
-            if (result)
+            if (result.Success)
             {
-                await AppData.InitializeAsync();
+                await appData.GetAllData();
                 ClearForm();
             }
         }

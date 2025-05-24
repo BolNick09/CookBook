@@ -13,7 +13,9 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using Azure;
 using CommonData;
+using ServerCommonData;
 using Microsoft.EntityFrameworkCore;
 
 namespace Client_CookBookApp
@@ -25,31 +27,33 @@ namespace Client_CookBookApp
     {
         private ObservableCollection<DishProduct> _currentDishProducts = new();
         private Dish _currentDish = null;
+        private readonly AppData appData;
 
-        public RecipesManagementWindow()
+        public RecipesManagementWindow(MainWindow owner)
         {
             InitializeComponent();
-            InitializeDataBindings();
+            appData = owner.appData;
+            InitializeDataBindings();            
             LoadData();
         }
 
         private async  void LoadData()
         {
-            try
-            {
-                await AppData.InitializeAsync();
-                RecipesGrid.Items.Refresh();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка загрузки данных: {ex.Message}");
-            }
+            //    try
+            //    {
+            //        await AppData.InitializeAsync();
+            //        RecipesGrid.Items.Refresh();
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        MessageBox.Show($"Ошибка загрузки данных: {ex.Message}");
+            //    }
         }
 
         private void InitializeDataBindings()
         {
-            RecipesGrid.ItemsSource = AppData.Dishes;
-            ProductsComboBox.ItemsSource = AppData.Products;
+            RecipesGrid.ItemsSource = appData.Dishes;
+            ProductsComboBox.ItemsSource = appData.Products;
             ProductsComboBox.DisplayMemberPath = "Name";
             IngredientsListBox.ItemsSource = _currentDishProducts;
             IngredientsListBox.DisplayMemberPath = "Product.Name";
@@ -102,160 +106,66 @@ namespace Client_CookBookApp
                 });
             }
         }
-        private bool ValidateForm()
+
+        private async void AddDish()
         {
-            if (string.IsNullOrWhiteSpace(RecipeNameTextBox.Text))
-            {
-                MessageBox.Show("Введите название блюда", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                return false;
-            }
 
-            if (_currentDishProducts.Count == 0)
-            {
-                MessageBox.Show("Добавьте ингредиенты", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                return false;
-            }
-            return true;
-        }
-        private async void SaveButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (!ValidateForm()) return;
+            //var newDish = new Dish(RecipeNameTextBox.Text, DescriptionTextBox.Text, _currentDishProducts.ToList());
 
-            try
+            var newDish = new Dish
             {
-                // 1. Сохраняем основное блюдо
-                var dishAction = _currentDish?.Id == 0 ? "Add" : "Update";
-                var savedDish = await AppData.Client.SendRequest<Dish>(
-                    dishAction,
-                    "Dish",
-                    new Dish
-                    {
-                        Id = _currentDish?.Id ?? 0,
-                        Name = RecipeNameTextBox.Text,
-                        Recipe = DescriptionTextBox.Text
-                    });
-
-                // 2. Удаляем старые ингредиенты (если редактирование)
-                if (dishAction == "Update")
+                Name = RecipeNameTextBox.Text,
+                Recipe = DescriptionTextBox.Text,
+                DishProducts = _currentDishProducts.Select(dp => new DishProduct
                 {
-                    var existingIngredients = await AppData.Client.SendRequest<List<DishProduct>>(
-                        "GetAll",
-                        "DishProduct",
-                        new { DishId = savedDish.Id });
+                    ProductId = dp.ProductId,  // Только ID, без Product!
+                    Weight = dp.Weight
+                }).ToList()
+            };
 
-                    foreach (var ingredient in existingIngredients)
-                    {
-                        await AppData.Client.SendRequest<bool>(
-                            "Delete",
-                            "DishProduct",
-                            new { ingredient.DishId, ingredient.ProductId });
-                    }
-                }
-
-                // 3. Добавляем новые ингредиенты
-                foreach (var ingredient in _currentDishProducts)
-                {
-                    await AppData.Client.SendRequest<bool>(
-                        "Add",
-                        "DishProduct",
-                        new DishProduct
-                        {
-                            DishId = savedDish.Id,
-                            ProductId = ingredient.ProductId,
-                            Weight = ingredient.Weight
-                        });
-                }
-
-                // 4. Обновляем локальные данные
-                await AppData.InitializeAsync();
-                ResetForm();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка сохранения: {ex.Message}");
-            }
+            var result = await appData.Client.SendRequestAsync<ServerCommonData.Response>("Add", "Dish", newDish);
+            if (result.Success)
+                await appData.GetAllData();
+            else
+                MessageBox.Show(result.Error);
         }
-
-
-        private void CancelButton_Click(object sender, RoutedEventArgs e)
+        private async void ModDish()
         {
-            ResetForm();
+            if (_currentDish == null)
+                return;
+
+            var result = await appData.Client.SendRequestAsync<ServerCommonData.Response>("Update", "Dish", _currentDish);
+            if (result.Success)
+                await appData.GetAllData();
+            else
+                MessageBox.Show(result.Error);
+            
         }
+        private async void DelDish()
+        {
+            if (_currentDish == null)
+                return;
+
+            var result = await appData.Client.SendRequestAsync<ServerCommonData.Response>("Delete", "Dish", _currentDish);
+            if (result.Success)
+                await appData.GetAllData();
+            else
+                MessageBox.Show(result.Error);
+        }     
 
         private void AddButton_Click(object sender, RoutedEventArgs e)
         {
-            ResetForm();
+            AddDish();
         }
 
         private async void EditButton_Click(object sender, RoutedEventArgs e)
         {
-            if (RecipesGrid.SelectedItem is Dish selectedDish)
-            {
-                try
-                {
-                    // Загружаем ингредиенты с сервера
-                    var ingredients = await AppData.Client.SendRequest<List<DishProduct>>(
-                        "GetAll",
-                        "DishProduct",
-                        new { DishId = selectedDish.Id });
-
-                    _currentDish = selectedDish;
-                    _currentDishProducts.Clear();
-
-                    foreach (var ingredient in ingredients)
-                    {
-                        _currentDishProducts.Add(new DishProduct
-                        {
-                            DishId = ingredient.DishId,
-                            ProductId = ingredient.ProductId,
-                            Product = AppData.Products.First(p => p.Id == ingredient.ProductId),
-                            Weight = ingredient.Weight
-                        });
-                    }
-
-                    RecipeNameTextBox.Text = _currentDish.Name;
-                    DescriptionTextBox.Text = _currentDish.Recipe;
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Ошибка загрузки: {ex.Message}");
-                }
-            }
+            ModDish();
         }
 
         private async void DeleteButton_Click(object sender, RoutedEventArgs e)
         {
-            if (RecipesGrid.SelectedItem is not Dish selectedDish) return;
-
-            try
-            {
-                // 1. Удаляем ингредиенты
-                var ingredients = await AppData.Client.SendRequest<List<DishProduct>>(
-                    "GetAll",
-                    "DishProduct",
-                    new { DishId = selectedDish.Id });
-
-                foreach (var ingredient in ingredients)
-                {
-                    await AppData.Client.SendRequest<bool>(
-                        "Delete",
-                        "DishProduct",
-                        new { ingredient.DishId, ingredient.ProductId });
-                }
-
-                // 2. Удаляем блюдо
-                await AppData.Client.SendRequest<bool>("Delete", "Dish", selectedDish.Id);
-
-                // 3. Обновляем локальные данные
-                AppData.Dishes.Remove(selectedDish);
-                ResetForm();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка удаления: {ex.Message}");
-            }
+            DelDish();
         }
 
         #endregion

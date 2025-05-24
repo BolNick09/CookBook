@@ -12,6 +12,7 @@ namespace Client_CookBookApp
     {
         private ObservableCollection<Dish> _filteredDishes = new();
         private ObservableCollection<Product> _filteredProducts = new();
+        private readonly AppData appData;
 
         public ObservableCollection<Dish> FilteredDishes
         {
@@ -27,34 +28,26 @@ namespace Client_CookBookApp
 
         public ObservableCollection<TagItemViewModel> DishTags { get; } = new();
 
-        public CombinedSearchWindow()
+        public CombinedSearchWindow(MainWindow owner)
         {
             InitializeComponent();
+            appData = owner.appData;
             DataContext = this;
             Loaded += CombinedSearchWindow_Loaded;
         }
 
         private async void CombinedSearchWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                await AppData.InitializeAsync();
-                InitializeFilters();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка загрузки данных: {ex.Message}");
-            }
+            
         }
 
         private void InitializeFilters()
         {
             // Инициализация тегов
             DishTags.Clear();
-            foreach (var tag in AppData.Tags)
-            {
+            foreach (var tag in appData.Tags)            
                 DishTags.Add(new TagItemViewModel { Tag = tag });
-            }
+            
 
             // Первоначальная фильтрация
             ApplyAllFilters();
@@ -68,7 +61,7 @@ namespace Client_CookBookApp
 
         public void ApplyDishesFilters()
         {
-            var query = AppData.Dishes.AsEnumerable();
+            var query = appData.Dishes.AsEnumerable();
 
             if (!string.IsNullOrWhiteSpace(txtDishSearch.Text))
             {
@@ -87,7 +80,7 @@ namespace Client_CookBookApp
 
         private void ApplyProductFilters()
         {
-            var query = AppData.Products.AsEnumerable();
+            var query = appData.Products.AsEnumerable();
 
             if (!string.IsNullOrWhiteSpace(txtProductSearch.Text))
             {
@@ -98,11 +91,11 @@ namespace Client_CookBookApp
             FilteredProducts = new ObservableCollection<Product>(query);
         }
 
-        private void RefreshButton_Click(object sender, RoutedEventArgs e)
+        private async void RefreshButton_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                AppData.InitializeAsync().Wait();
+                await appData.GetAllData();
                 ApplyAllFilters();
             }
             catch (Exception ex)

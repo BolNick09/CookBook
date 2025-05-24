@@ -30,10 +30,18 @@ namespace CommonData
         public string Recipe { get; set; } = null!;
         public string? ImagePath { get; set; }
 
-
-
-        public List<DishTag> DishTags { get; set; } = new();
+        public List<DishTag> DishTags { get; set; }
         public List<DishProduct>? DishProducts { get;  set; }
+
+        public Dish() { }
+
+        public Dish(string name, string recipe, List<DishProduct>? dishProducts)
+        {
+            Name = name;
+            Recipe = recipe;
+            DishTags = new();
+            DishProducts = dishProducts ?? new List<DishProduct>(); 
+        }
 
         public event PropertyChangedEventHandler? PropertyChanged;
 

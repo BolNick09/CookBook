@@ -1,4 +1,6 @@
-﻿using CommonData;
+﻿using Azure;
+using CommonData;
+using ServerCommonData;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,16 +22,18 @@ namespace Client_CookBookApp
     /// </summary>
     public partial class Favorite : Window
     {
-        public Favorite()
+        private readonly AppData appData;
+        public Favorite(MainWindow owner)
         {
             InitializeComponent();
+            appData = owner.appData;
             LoadData();
         }
 
         private void LoadData()
         {
             // Заполняем выпадающий список всеми блюдами
-            AllDishesComboBox.ItemsSource = AppData.Dishes.ToList();
+            AllDishesComboBox.ItemsSource = appData.Dishes.ToList();
 
             // Отображаем текущие избранные блюда
             RefreshFavorites();
@@ -38,9 +42,9 @@ namespace Client_CookBookApp
         {
             try
             {
-                var result = await AppData.Client.SendRequest<bool>("Update", "Dish", dish);
-                if (!result)
-                    MessageBox.Show("Не удалось сохранить изменения");
+                var result = await appData.Client.SendRequestAsync<ServerCommonData.Response>("Update", "Dish", dish);
+                if (!result.Success)
+                    MessageBox.Show(result.Error);
             }
             catch (System.Exception ex)
             {
@@ -51,7 +55,7 @@ namespace Client_CookBookApp
         private void RefreshFavorites()
         {
             // Фильтруем только избранные блюда
-            FavoritesListBox.ItemsSource = AppData.Dishes
+            FavoritesListBox.ItemsSource = appData.Dishes
                 .Where(d => d.IsFavorite)
                 .ToList();
         }

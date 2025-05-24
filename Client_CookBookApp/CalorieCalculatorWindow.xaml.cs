@@ -5,15 +5,19 @@ using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 
+
 namespace Client_CookBookApp
 {
     public partial class CalorieCalculatorWindow : Window
     {
         private readonly BindingList<CalculatedProduct> _selectedProducts = new();
+        private readonly AppData appData;
+        
 
-        public CalorieCalculatorWindow()
+        public CalorieCalculatorWindow(MainWindow owner)
         {
-            InitializeComponent();
+            InitializeComponent();         
+            appData = owner.appData;            
             Loaded += async (s, e) => await InitializeProductsAsync();
             SetupControls();
         }
@@ -22,10 +26,7 @@ namespace Client_CookBookApp
         {
             try
             {
-                if (!AppData.Products.Any())
-                    await AppData.InitializeAsync();
-
-                ProductsComboBox.ItemsSource = AppData.Products;
+                ProductsComboBox.ItemsSource = appData.Products;
                 ProductsComboBox.DisplayMemberPath = "Name";
             }
             catch (Exception ex)
