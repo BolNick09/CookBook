@@ -213,7 +213,8 @@ namespace ServerCommonData
             {
                 case "Dish":
                 {
-                    var dishId = JsonConvert.DeserializeObject<int>(data);
+                    var extdish = JsonConvert.DeserializeObject<Dish>(data);
+                    int dishId = extdish.Id;
                     var dish = await _dbContext.Dishes.FindAsync(dishId);
                     if (dish != null)
                     {
